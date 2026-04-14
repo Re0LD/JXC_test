@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <string.h>
+#include <signal.h>
 
 #include "jxc_log.h"
 #include "jxc_fifo.h"
@@ -82,6 +83,7 @@ void *thread4_fun(void *para)
 //----------------------------------------------------------------------------------------------------jxc_log
 void test_jxc_log(void)
 {
+    JXC_INFO("--------------------TEST JXC LOG\n");
     jxc_log_init("testlog.txt");
     for(int i=0; i<5; i++)
         jxc_log_write("log_%d\n",i);
@@ -94,26 +96,67 @@ void test_jxc_log(void)
 //----------------------------------------------------------------------------------------------------jxc_util
 void test_jxc_util(void)
 {
-    double temp = jxc_get_us();
-    struct timespec ts;
-    ts.tv_sec = 0;          //s
-    ts.tv_nsec = 1000*1000; //ns
-    nanosleep(&ts, NULL);
-    // usleep(500);
-    JXC_INFO("set sleep 1000 us with real %f us\n",jxc_get_us()-temp);
-    temp = jxc_get_ms();
-    usleep(1000);
-    JXC_INFO("set sleep 1000 us with real %f ms\n",jxc_get_ms()-temp);
-    temp = jxc_get_s();
-    usleep(1000);
-    JXC_INFO("set sleep 1000 us with real %f s\n",jxc_get_s()-temp);
+    JXC_INFO("--------------------TEST JXC UTIL\n");
+    double tempus = jxc_get_us();
+    double tempms = jxc_get_ms();
+    double temps = jxc_get_s();
+    usleep(1000*2);
+    JXC_INFO("set sleep 1000*2 us with real %f us\n",jxc_get_us()-tempus);
+    JXC_INFO("set sleep 1000*2 us with real %f ms\n",jxc_get_ms()-tempms);
+    JXC_INFO("set sleep 1000*2 us with real %f s\n",jxc_get_s()-temps);
+
+    int a=-1, b=1;
+    JXC_INFO("a=-1 b=1 after ABS a=%d b=%d\n",JXC_ABS(a), JXC_ABS(b));
+    JXC_INFO("x=-1 y=1 after MAX2 res=%d\n",JXC_MAX2(-1, 1));
+    JXC_INFO("x=-1 y=1 after MIN2 res=%d\n",JXC_MIN2(-1, 1));
+    JXC_INFO("x=-1 y=1 z=10 after MAX3 res=%d\n",JXC_MAX3(-1, 1, 10));
+    JXC_INFO("x=-1 y=1 z=10 after MIN3 res=%d\n",JXC_MIN3(-1, 1, 10));
+    JXC_INFO("x=44 y=16 after ALIGN_UP res=%d\n",JXC_ALIGN_UP(44, 16));
+    JXC_INFO("x=44 y=16 after ALIGN_DOWN res=%d\n",JXC_ALIGN_DOWN(44, 16));
+    JXC_INFO("value=10 min=0 max=20 after BETWEEN res=%d\n",JXC_VALUE_BETWEEN(10, 0, 20));
+    JXC_INFO("value=-1 min=0 max=20 after BETWEEN res=%d\n",JXC_VALUE_BETWEEN(-1, 0, 20));
 }
 
 //----------------------------------------------------------------------------------------------------jxc_fifo
-//----------------------------------------------------------------------------------------------------jxc_queue
-//----------------------------------------------------------------------------------------------------jxc_udp
-//----------------------------------------------------------------------------------------------------jxc_tcp
+void test_jxc_fifo(void)
+{
+    JXC_INFO("--------------------TEST JXC FIFO\n");
+    JXC_INFO("NULL\n");
+}
 
+//----------------------------------------------------------------------------------------------------jxc_queue
+void test_jxc_queue(void)
+{
+    JXC_INFO("--------------------TEST JXC QUEUE\n");
+    JXC_INFO("NULL\n");
+}
+
+//----------------------------------------------------------------------------------------------------jxc_udp
+void test_jxc_udp(void)
+{
+    JXC_INFO("--------------------TEST JXC UDP\n");
+    JXC_INFO("NULL\n");
+}
+
+//----------------------------------------------------------------------------------------------------jxc_tcp
+void test_jxc_tcp(void)
+{
+    JXC_INFO("--------------------TEST JXC TCP\n");
+    JXC_INFO("NULL\n");
+}
+
+//----------------------------------------------------------------------------------------------------SIGNAL
+void signal_cb(int sig)
+{
+    if(sig == SIGINT){
+        printf("Get ctrl c\n");
+    }else if(sig == SIGTERM){
+        printf("Get kill/reboot\n");
+    }else{
+        printf("unknow sig %d\n",sig);
+    }
+
+}
 
 
 //----------------------------------------------------------------------------------------------------MAIN
@@ -121,21 +164,33 @@ int main(int argc, char **argv)
 {
     printf("this is jxc test\n");
 
+    signal(SIGINT, signal_cb);   // Ctrl+C
+    signal(SIGTERM, signal_cb);  // kill 或 reboot
+
     //----------test jxc_log
     test_jxc_log();
 
     //----------test jxc_util
     test_jxc_util();
 
-
     //----------test jxc_fifo
+    test_jxc_fifo();
+
     //----------test jxc_queue
+    test_jxc_queue();
+
     //----------test jxc_udp
+    test_jxc_udp();
+
     //----------test jxc_tcp
+    test_jxc_tcp();
+
     //----------test jxc_XXX
+
+
     //init fifo
     fifo = jxc_fifo_create(1024*1024);
-
+    
     //creat
     int ret = 0;
     ret = pthread_create(&thread1, 0, thread1_fun, NULL);
@@ -152,7 +207,8 @@ int main(int argc, char **argv)
     jxc_log_close();
     jxc_fifo_destroy(fifo);
 
-    JXC_INFO("test finish\n");
+    printf("test finish\n");
+
     return 0;
 }
 
