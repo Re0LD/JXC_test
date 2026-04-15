@@ -9,43 +9,41 @@
 
 
 static bool is_running = true;
+
+static pthread_t thread1;
+static pthread_t thread2;
 jxc_fifo_handle fifo = NULL;
-pthread_t thread3;
-pthread_t thread4;
+#define TOTAL 1000000
 
-void *thread3_fun(void *para)
+void *thread_fifo_w_fun(void *para)
 {
-    uint8_t data[10]={0};
+    uint32_t len = 0;
 
-    for(int i=0; i<1000; i++){
-        memset(data, i%255, sizeof(data));    
-        jxc_fifo_write(fifo, data, sizeof(data));
-        usleep(1000);
+    for(int i=0; i<TOTAL; i++){ 
+        len = jxc_fifo_write(fifo, (uint8_t *)&i, sizeof(i));
+        if(len != sizeof(i)){
+            printf("jxc_fifo wirte err\n");
+        }
     }
-
-    for(int i=0; i<sizeof(data); i++){
-        data[i] = i;
-    }
-    jxc_fifo_write(fifo, data, sizeof(data));
 
 }
 
-void *thread4_fun(void *para)
+void *thread_fifo_r_fun(void *para)
 {
-    uint8_t data[10] = {0};
-    uint8_t checkdata[10] = {0,1,2,3,4,5,6,7,8,9};
-    while(is_running)
+    uint32_t expect = 0;
+    uint32_t value = 0;
+
+    while(expect < TOTAL)
     {
-        if(jxc_fifo_get_count(fifo)>=10){
-            jxc_fifo_read(fifo, data, sizeof(data));
-            if(memcmp(data, checkdata, sizeof(data)) == 0){
-                // jxc_log_write("check ok");
-                break;
-            }else{
-                // jxc_log_write("%d--%d",data[0],data[9]);
+        if(jxc_fifo_get_count(fifo)>0){
+            jxc_fifo_read(fifo, (uint8_t *)&value, sizeof(value));
+            if(value != expect){
+                printf("jxc_fifo read err with v=%d e=%d\n",value, expect);
             }
+            expect++;
         }
     }
+    printf("jxc_fifo finish\n");
 }
 
 
@@ -54,17 +52,17 @@ void test_jxc_fifo(void)
     printf("--------------------TEST JXC FIFO\n");
 
     //init fifo
-    fifo = jxc_fifo_create(1024*1024);
+    fifo = jxc_fifo_create(1024*1024*4);
 
     int ret = 0;
-    ret = pthread_create(&thread3, 0, thread3_fun, NULL);
-    ret = pthread_create(&thread4, 0, thread4_fun, NULL);
+    ret = pthread_create(&thread1, 0, thread_fifo_w_fun, NULL);
+    ret = pthread_create(&thread2, 0, thread_fifo_r_fun, NULL);
 }
 
 void test_jxc_fifo_destory(void)
 {
-    pthread_join(thread3, NULL);
-    pthread_join(thread4, NULL);
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
 
     jxc_fifo_destroy(fifo);
 }

@@ -71,8 +71,7 @@ void *thread_udp_groupR_fun(void *para)
             printf("udp recv from %s:%d\n",ip,port);
             printf("udp recv: %s\n",data);
         }else{
-            printf("udp group recv timeout\n");
-            usleep(20000);
+            // printf("udp group recv timeout\n");
         }
     }
     
