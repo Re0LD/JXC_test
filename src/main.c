@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,10 +8,14 @@
 #include <string.h>
 #include <signal.h>
 
+#include "jxc.h"
 #include "jxc_log.h"
 #include "jxc_fifo.h"
 #include "jxc_util.h"
 #include "jxc_udp.h"
+
+//全局变量
+bool is_running = true;
 
 //线程
 pthread_t thread1;
@@ -20,10 +25,28 @@ pthread_t thread3;
 pthread_t thread4;
 
 pthread_t thread_udp;
+pthread_t thread_udp_groupS;
+pthread_t thread_udp_groupR;
 
-//
+//FIFO
 jxc_fifo_handle fifo = NULL;
+
+//UDP
 jxc_udp_handle  udp_hndl = NULL;
+jxc_udp_handle  udp_groupS_hndl = NULL;
+jxc_udp_handle  udp_groupR_hndl = NULL;
+//UDP 单播
+#define UDP_LOCAL_IP        "192.168.10.128"
+#define UDP_LOCAL_PORT      19990
+//UDP 组播发
+#define UDP_GROUPS_IP       "226.0.0.1"
+#define UDP_GROUPS_PORT     12345
+#define UDP_GROUPS_NET_CARD "192.168.10.128"
+//UDP 组播收
+#define UDP_GROUPR_IP       "239.0.0.1"
+#define UDP_GROUPR_PORT     12346
+#define UDP_GROUPR_NET_CARD "192.168.3.11"
+
 
 //----------------------------------------------------------------------------------------------------
 void *thread1_fun(void *para)
@@ -48,7 +71,6 @@ void *thread2_fun(void *para)
     jxc_log_write("i am done");
 }
 
-
 void *thread3_fun(void *para)
 {
     uint8_t data[10]={0};
@@ -70,7 +92,7 @@ void *thread4_fun(void *para)
 {
     uint8_t data[10] = {0};
     uint8_t checkdata[10] = {0,1,2,3,4,5,6,7,8,9};
-    while(1)
+    while(is_running)
     {
         if(jxc_fifo_get_count(fifo)>=10){
             jxc_fifo_read(fifo, data, sizeof(data));
@@ -89,7 +111,7 @@ void *thread_udp_fun(void *para)
     uint8_t data[1024] = {0};
     uint8_t ip[256] = {0};
     uint16_t port = 0;
-    while(1)
+    while(is_running)
     {
         if(jxc_udp_recv(udp_hndl, data, sizeof(data), ip, &port) > 0){
             if(data[0] == 0x5a && data[1] == 0x5a){
@@ -106,6 +128,33 @@ void *thread_udp_fun(void *para)
     
 }
 
+void *thread_udp_groupS_fun(void *para)
+{
+    while(is_running)
+    {
+        jxc_udp_send(udp_groupS_hndl, UDP_GROUPS_IP, UDP_GROUPS_PORT, "i am udp group", sizeof("i am udp group"));
+        sleep(1);
+    }
+}
+
+void *thread_udp_groupR_fun(void *para)
+{
+    uint8_t data[1024] = {0};
+    uint8_t ip[256] = {0};
+    uint16_t port = 0;
+    while(is_running)
+    {
+        if(jxc_udp_recv(udp_groupR_hndl, data, sizeof(data), ip, &port) > 0){
+            JXC_INFO("udp recv from %s:%d\n",ip,port);
+            JXC_INFO("udp recv: %s\n",data);
+        }else{
+            // JXC_INFO("udp group recv timeout\n");
+            usleep(20000);
+        }
+    }
+    
+}
+
 //----------------------------------------------------------------------------------------------------jxc_log
 void test_jxc_log(void)
 {
@@ -117,6 +166,18 @@ void test_jxc_log(void)
     JXC_DEBUG("JXC_DEBUG\n");
     JXC_INFO("JXC_INFO\n");
     JXC_ERROR("JXC_ERROR\n");
+
+    int ret = 0;
+    ret = pthread_create(&thread1, 0, thread1_fun, NULL);
+    ret = pthread_create(&thread2, 0, thread2_fun, NULL);
+}
+
+void test_jxc_log_destory(void)
+{
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
+
+    jxc_log_close();
 }
 
 //----------------------------------------------------------------------------------------------------jxc_util
@@ -147,7 +208,21 @@ void test_jxc_util(void)
 void test_jxc_fifo(void)
 {
     JXC_INFO("--------------------TEST JXC FIFO\n");
-    JXC_INFO("NULL\n");
+
+    //init fifo
+    fifo = jxc_fifo_create(1024*1024);
+
+    int ret = 0;
+    ret = pthread_create(&thread3, 0, thread3_fun, NULL);
+    ret = pthread_create(&thread4, 0, thread4_fun, NULL);
+}
+
+void test_jxc_fifo_destory(void)
+{
+    pthread_join(thread3, NULL);
+    pthread_join(thread4, NULL);
+
+    jxc_fifo_destroy(fifo);
 }
 
 //----------------------------------------------------------------------------------------------------jxc_queue
@@ -157,22 +232,61 @@ void test_jxc_queue(void)
     JXC_INFO("NULL\n");
 }
 
+void test_jxc_queue_destory(void)
+{
+
+}
+
 //----------------------------------------------------------------------------------------------------jxc_udp
 void test_jxc_udp(void)
 {
     JXC_INFO("--------------------TEST JXC UDP\n");
     
+    int ret = 0;
+
+    //单播发送&接收
     jxc_udp_cfg_t cfg;
-    cfg.local_ip = "192.168.10.128";    
-    cfg.local_port = 19990;
-    cfg.mcast_group = NULL; 
+    cfg.local_ip = UDP_LOCAL_IP;
+    cfg.local_port = UDP_LOCAL_PORT;
+    cfg.mcast_group = NULL;
     cfg.iface_ip = NULL;
     cfg.recv_timeout_ms = 2000;
-    
     udp_hndl = jxc_udp_creat(&cfg);
-
-    int ret = 0;
     ret = pthread_create(&thread_udp, 0, thread_udp_fun, NULL);
+
+    //组播发送
+    cfg.local_ip = NULL;
+    cfg.local_port = 0;
+    cfg.mcast_group = NULL;
+    cfg.iface_ip = NULL;
+    cfg.recv_timeout_ms = -1;
+    udp_groupS_hndl = jxc_udp_creat(&cfg);
+    jxc_udp_set_mcast_if(udp_groupS_hndl, UDP_GROUPS_NET_CARD);
+    ret = pthread_create(&thread_udp_groupS, 0, thread_udp_groupS_fun, NULL);
+
+    //组播接收
+    cfg.local_ip = NULL;
+    cfg.local_port = UDP_GROUPR_PORT;
+    cfg.mcast_group = UDP_GROUPR_IP;
+    cfg.iface_ip = UDP_GROUPR_NET_CARD;
+    cfg.recv_timeout_ms = 2000;
+    udp_groupR_hndl = jxc_udp_creat(&cfg);
+    if(!udp_groupR_hndl){
+        JXC_ERROR("udp group recv err\n");
+    }
+    ret = pthread_create(&thread_udp_groupR, 0, thread_udp_groupR_fun, NULL);
+}
+
+void test_jxc_udp_destory(void)
+{
+    pthread_join(thread_udp, NULL);
+    pthread_join(thread_udp_groupS, NULL);
+    pthread_join(thread_udp_groupR, NULL);
+
+    jxc_udp_destroy(udp_hndl);
+    jxc_udp_destroy(udp_groupS_hndl);
+    jxc_udp_destroy(udp_groupR_hndl);
+
 }
 
 //----------------------------------------------------------------------------------------------------jxc_tcp
@@ -180,6 +294,26 @@ void test_jxc_tcp(void)
 {
     JXC_INFO("--------------------TEST JXC TCP\n");
     JXC_INFO("NULL\n");
+}
+
+void test_jxc_tcp_destory(void)
+{
+
+}
+
+//----------------------------------------------------------------------------------------------------ALL DESTORY
+void test_destory(void)
+{
+    //log destory
+    test_jxc_log_destory();
+    //fifo destory
+    test_jxc_fifo_destory();
+    //queue destory
+    test_jxc_queue_destory();
+    //udp destory
+    test_jxc_udp_destory();
+    //tcp destory
+    test_jxc_tcp_destory();
 }
 
 //----------------------------------------------------------------------------------------------------SIGNAL
@@ -193,6 +327,9 @@ void signal_cb(int sig)
         printf("unknow sig %d\n",sig);
     }
 
+    printf("test app close\n");
+    is_running = false;
+    test_destory();
 }
 
 
@@ -206,46 +343,25 @@ int main(int argc, char **argv)
 
     //----------test jxc_log
     test_jxc_log();
-
     //----------test jxc_util
     test_jxc_util();
-
     //----------test jxc_fifo
     test_jxc_fifo();
-
     //----------test jxc_queue
     test_jxc_queue();
-
     //----------test jxc_udp
     test_jxc_udp();
-
     //----------test jxc_tcp
     test_jxc_tcp();
-
     //----------test jxc_XXX
 
-
-    //init fifo
-    fifo = jxc_fifo_create(1024*1024);
-    
-    //creat
-    int ret = 0;
-    ret = pthread_create(&thread1, 0, thread1_fun, NULL);
-    ret = pthread_create(&thread2, 0, thread2_fun, NULL);
-    ret = pthread_create(&thread3, 0, thread3_fun, NULL);
-    ret = pthread_create(&thread4, 0, thread4_fun, NULL);
-
     //quit
-    pthread_join(thread1, NULL);
-    pthread_join(thread2, NULL);
-    pthread_join(thread3, NULL);
-    pthread_join(thread4, NULL);
-    pthread_join(thread_udp, NULL);
-
-    jxc_log_close();
-    jxc_fifo_destroy(fifo);
-    jxc_udp_destroy(udp_hndl);
-
+    // test_destory();
+    while(is_running)
+    {
+        sleep(1);
+    }
+    
     printf("test finish\n");
 
     return 0;
