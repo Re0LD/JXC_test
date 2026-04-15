@@ -10,6 +10,7 @@
 #include "jxc_log.h"
 #include "jxc_fifo.h"
 #include "jxc_util.h"
+#include "jxc_udp.h"
 
 //线程
 pthread_t thread1;
@@ -18,8 +19,11 @@ pthread_t thread2;
 pthread_t thread3;
 pthread_t thread4;
 
+pthread_t thread_udp;
+
 //
 jxc_fifo_handle fifo = NULL;
+jxc_udp_handle  udp_hndl = NULL;
 
 //----------------------------------------------------------------------------------------------------
 void *thread1_fun(void *para)
@@ -80,6 +84,28 @@ void *thread4_fun(void *para)
     }
 }
 
+void *thread_udp_fun(void *para)
+{
+    uint8_t data[1024] = {0};
+    uint8_t ip[256] = {0};
+    uint16_t port = 0;
+    while(1)
+    {
+        if(jxc_udp_recv(udp_hndl, data, sizeof(data), ip, &port) > 0){
+            if(data[0] == 0x5a && data[1] == 0x5a){
+                return NULL;
+            }else{
+                JXC_INFO("udp recv from %s:%d\n",ip,port);
+                JXC_INFO("udp recv: %s\n",data);
+            }
+        }else{
+            // JXC_INFO("udp recv timeout\n");
+            jxc_udp_send(udp_hndl, "192.168.10.128", 19991, "i am 19990\n", sizeof("i am 19990\n"));
+        }
+    }
+    
+}
+
 //----------------------------------------------------------------------------------------------------jxc_log
 void test_jxc_log(void)
 {
@@ -135,7 +161,18 @@ void test_jxc_queue(void)
 void test_jxc_udp(void)
 {
     JXC_INFO("--------------------TEST JXC UDP\n");
-    JXC_INFO("NULL\n");
+    
+    jxc_udp_cfg_t cfg;
+    cfg.local_ip = "192.168.10.128";    
+    cfg.local_port = 19990;
+    cfg.mcast_group = NULL; 
+    cfg.iface_ip = NULL;
+    cfg.recv_timeout_ms = 2000;
+    
+    udp_hndl = jxc_udp_creat(&cfg);
+
+    int ret = 0;
+    ret = pthread_create(&thread_udp, 0, thread_udp_fun, NULL);
 }
 
 //----------------------------------------------------------------------------------------------------jxc_tcp
@@ -203,9 +240,11 @@ int main(int argc, char **argv)
     pthread_join(thread2, NULL);
     pthread_join(thread3, NULL);
     pthread_join(thread4, NULL);
+    pthread_join(thread_udp, NULL);
 
     jxc_log_close();
     jxc_fifo_destroy(fifo);
+    jxc_udp_destroy(udp_hndl);
 
     printf("test finish\n");
 

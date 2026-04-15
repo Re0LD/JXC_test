@@ -6,7 +6,7 @@
  * 
 */
 
-#include "jxc.h"
+#include <stdint.h>
 
 typedef void* jxc_queue_handle;
 

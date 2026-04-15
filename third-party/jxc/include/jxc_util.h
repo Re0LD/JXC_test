@@ -2,7 +2,7 @@
 #define __JXC_UTIL_H
 
 /**
- * 
+ * 各种常用的基础函数、宏定义
 */
 
 #define JXC_ABS(x)                      ((x) >= 0 ? (x) : (-(x)))
