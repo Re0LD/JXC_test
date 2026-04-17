@@ -22,7 +22,6 @@ double jxc_get_us(void);
 double jxc_get_ms(void);
 double jxc_get_s(void);
 
-
 #ifdef __cplusplus
 }
 #endif

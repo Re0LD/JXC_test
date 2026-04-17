@@ -1,7 +1,8 @@
 #ifndef __JXC_LOG_H
 #define __JXC_LOG_H
 
-#include "jxc.h"
+#include <stdio.h>
+#include "jxc_type.h"
 
 //----------全局开关(注释掉可禁用所有日志)----------
 #define ENABLE_PRINTF
@@ -11,7 +12,6 @@
 #define ENABLE_LOG_INFO     1
 #define ENABLE_LOG_ERROR    1
 #define DEFAULT_FILE_NAME   "log_file.txt"
-
 
 #ifdef __cplusplus
 extern "C" {

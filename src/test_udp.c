@@ -14,9 +14,9 @@
 static bool is_running = true;
 
 //线程
-pthread_t thread_udp;
-pthread_t thread_udp_groupS;
-pthread_t thread_udp_groupR;
+static pthread_t thread_udp;
+static pthread_t thread_udp_groupS;
+static pthread_t thread_udp_groupR;
 //UDP
 jxc_udp_handle  udp_hndl = NULL;
 jxc_udp_handle  udp_groupS_hndl = NULL;
@@ -33,7 +33,7 @@ jxc_udp_handle  udp_groupR_hndl = NULL;
 #define UDP_GROUPR_PORT     12346
 #define UDP_GROUPR_NET_CARD "192.168.3.11"
 
-void *thread_udp_fun(void *para)
+static void *thread_udp_fun(void *para)
 {
     uint8_t data[1024] = {0};
     uint8_t ip[256] = {0};
@@ -51,7 +51,7 @@ void *thread_udp_fun(void *para)
     
 }
 
-void *thread_udp_groupS_fun(void *para)
+static void *thread_udp_groupS_fun(void *para)
 {
     while(is_running)
     {
@@ -60,7 +60,7 @@ void *thread_udp_groupS_fun(void *para)
     }
 }
 
-void *thread_udp_groupR_fun(void *para)
+static void *thread_udp_groupR_fun(void *para)
 {
     uint8_t data[1024] = {0};
     uint8_t ip[256] = {0};

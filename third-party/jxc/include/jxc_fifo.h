@@ -2,7 +2,7 @@
 #define __JXC_FIFO_H
 
 #include <stdint.h>
-#include "jxc.h"
+#include "jxc_type.h"
 
 typedef void* jxc_fifo_handle;
 

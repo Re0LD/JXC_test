@@ -5,7 +5,7 @@
  * 
  * 
 */
-#include "jxc_type.h"
+
 
 #ifdef __cplusplus
 extern "C" {

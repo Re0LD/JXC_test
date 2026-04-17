@@ -9,10 +9,10 @@
 */
 
 //线程
-pthread_t thread1;
-pthread_t thread2;
+static pthread_t thread1;
+static pthread_t thread2;
 
-void *thread1_fun(void *para)
+static void *thread1_fun(void *para)
 {
     for(int i=0; i<1000; i++){
         jxc_log_write("i am t1 %d",i);
@@ -20,7 +20,7 @@ void *thread1_fun(void *para)
     jxc_log_write("i am t1 done");
 }
 
-void *thread2_fun(void *para)
+static void *thread2_fun(void *para)
 {
     for(int i=0; i<1000; i++){
         jxc_log_write("i am t2 %d",i);

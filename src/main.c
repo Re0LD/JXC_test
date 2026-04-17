@@ -7,6 +7,7 @@
 #include "test_util.h"
 #include "test_fifo.h"
 #include "test_udp.h"
+#include "test_queue.h"
 
 static bool is_running = true;
 
@@ -25,6 +26,7 @@ void signal_cb(int sig)
     test_jxc_log_destory();
     test_jxc_fifo_destory();
     test_jxc_udp_destory();
+    test_jxc_queue_destory();
 
     printf("test app close\n");
 }
@@ -45,7 +47,7 @@ int main(int argc, char **argv)
     //----------test jxc_fifo
     test_jxc_fifo();
     //----------test jxc_queue
-    // test_jxc_queue();
+    test_jxc_queue();
     //----------test jxc_udp
     test_jxc_udp();
     //----------test jxc_tcp

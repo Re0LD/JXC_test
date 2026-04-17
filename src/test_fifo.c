@@ -15,7 +15,7 @@ static pthread_t thread2;
 jxc_fifo_handle fifo = NULL;
 #define TOTAL 1000000
 
-void *thread_fifo_w_fun(void *para)
+static void *thread_fifo_w_fun(void *para)
 {
     uint32_t len = 0;
 
@@ -28,7 +28,7 @@ void *thread_fifo_w_fun(void *para)
 
 }
 
-void *thread_fifo_r_fun(void *para)
+static void *thread_fifo_r_fun(void *para)
 {
     uint32_t expect = 0;
     uint32_t value = 0;
