@@ -74,21 +74,37 @@ void test_jxc_queue(void)
             s.num++;
             s.fix++;
         }else{
-            printf("queue full, cur queue size is %d\n",jxc_queue_get_cur_num(handle));
+            printf("queue enqueue timeout, cur queue size is %d\n",jxc_queue_get_cur_num(handle));
             jxc_queue_dequeue(handle, (uint8_t *)&ss, QUEUE_TIMEOUT);
             printf("get oldest para num=%d fix=%d\n",ss.num,ss.fix);
             jxc_queue_get_latest(handle, (uint8_t *)&ss, QUEUE_TIMEOUT);
-            printf("get newest para num=%d fix=%d\n",ss.num,ss.fix);
-            jxc_queue_clear(handle);
-            printf("clear queue, queue size is %d\n",jxc_queue_get_cur_num(handle));
+            printf("get newest para num=%d fix=%d and queue size is %d\n",ss.num,ss.fix,jxc_queue_get_cur_num(handle));
             break;
         }
     }
 
-    if(jxc_queue_dequeue(handle, (uint8_t *)&ss, QUEUE_TIMEOUT) != jxcStatusSuccess){
-        printf("queue null, try dequeue, timeout, queue size is %d\n",jxc_queue_get_cur_num(handle));
-    }else{
-        printf("[ERR] queue null, try dequeue, success, queue size is %d\n",jxc_queue_get_cur_num(handle));
+    jxc_queue_enqueue(handle, (uint8_t *)&s, QUEUE_TIMEOUT);
+    printf("queue enqueue 1 elem, queue size is %d\n",jxc_queue_get_cur_num(handle));
+    jxc_queue_clear(handle);
+    printf("clear queue, queue size is %d\n",jxc_queue_get_cur_num(handle));
+
+    for(int i=0; i<QUEUE_MAX_NUM; i++){
+        if(jxc_queue_enqueue(handle, (uint8_t *)&s, QUEUE_TIMEOUT) == jxcStatusSuccess){
+            s.num++;
+            s.fix++;
+        }else{
+            printf("[ERR] queue enqueue timeout, queue size is %d\n",jxc_queue_get_cur_num(handle));
+            break;
+        }
+    }
+
+    for(int i=0; i<QUEUE_MAX_NUM+1; i++){
+        if(jxc_queue_dequeue(handle, (uint8_t *)&ss, QUEUE_TIMEOUT) == jxcStatusSuccess){
+            printf("queue enqueue num=%d fix=%d\n",ss.num,ss.fix);
+        }else{
+            printf("queue enqueue timeout, queue size is %d\n",jxc_queue_get_cur_num(handle));
+            break;
+        }
     }
 
     int ret = 0;
