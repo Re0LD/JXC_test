@@ -3,7 +3,7 @@
 
 /**
  * FIFO 线程保护
- * 不建议在出队入队时destory
+ * 不建议在写入读取时destory
 */
 
 #include <stdint.h>

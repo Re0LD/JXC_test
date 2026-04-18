@@ -18,9 +18,6 @@ typedef enum{
     jxcStatusLogFileExist       = -11,      //file存在
     jxcStatusLogFileOpenErr     = -12,      //file打开失败
 
-    jxcStatusFifoTimeout        = -21,      //fifo超时
-    jxcStatusFifoParaErr        = -22,      //fifo参数异常
-
 }jxc_status;
 
 
